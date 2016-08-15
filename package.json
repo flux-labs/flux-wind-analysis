@@ -1,0 +1,19 @@
+{
+  "name": "flux-json-uploader",
+  "version": "0.0.1",
+  "description": "Upload json to development server.",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.13.4"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@bitbucket.org:vannevartech/flux-json-uploader.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/vannevartech/flux-json-uploader"
+}
