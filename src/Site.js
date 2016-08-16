@@ -1,7 +1,8 @@
 'use-strict';
 
 function Site() {
-
+    this.bounds = null;
+    this.uvScale = 0;
 }
 Site.paddingScale = 1.2;
 Site.paddingOffset = 15;
@@ -16,11 +17,44 @@ Site.calcLength = function(x0, y0, x1, y1) {
     return Math.sqrt(dx*dx+dy*dy);
 };
 
-// Building Profiles
-Site.processFootprints = function (values) {
-    var bounds = Site.findBounds(values);
-    var scale = Site.computeScales(bounds);
 
+Site.prototype.getMesh = function (dataUrl) {
+    if (!this.bounds) return;
+    var scale = 1.0 / (this.uvScale);
+    var offset = Site.paddingOffset;
+    var minX = scale*(this.bounds[0][0]-offset);
+    var minY = scale*(this.bounds[0][1]-offset);
+    var maxX = minX+xdim*scale;
+    var maxY = minY+ydim*scale;
+    var props = {
+        colorMap: dataUrl
+    }
+    var uvmax = 1.0;// / Site.paddingScale;
+    return {
+        "attributes":{
+            "materialProperties":props,
+            "uvs":[
+                [uvmax,uvmax],
+                [0,uvmax],
+                [0,0],
+                [uvmax,0]
+            ]
+        },
+        "vertices": [
+        [maxX,maxY,0],
+        [minX,maxY,0],
+        [minX,minY,0],
+        [maxX,minY,0]],
+        "faces":[[0,3,1],[1,3,2]],"primitive":"mesh"
+    };
+}
+
+// Building Profiles
+Site.prototype.processFootprints = function (values) {
+    this.bounds = Site.findBounds(values);
+    var bounds = this.bounds;
+    var scale = Site.computeScales(bounds);
+    this.uvScale = scale;
     // For each footprint
     for (var f=0;f<values.length;f++) {
         var footprint = values[f];
@@ -48,6 +82,8 @@ Site.processFootprints = function (values) {
             }
         }
     }
+
+    // Call the render function for the fluid solver
     paintCanvas();
 };
 

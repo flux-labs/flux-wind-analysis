@@ -12,10 +12,13 @@ function FluxApp (clientKey, redirectUri, projectMenu, isProd){
     this._fluxDataSelector.setOnKeys(this.populateKeys.bind(this));
     this._fluxDataSelector.setOnValue(this.populateValue.bind(this));
     this._fluxDataSelector.init();
-    this.canvas = document.querySelector('#imageCanvas');
+    this.canvas = document.querySelector('#theCanvas');
     this.ctx = this.canvas.getContext('2d');
+    this.simulationKeyId = null;
+    this.site = new Site();
 }
 FluxApp.keyDescription = 'Image blob';
+FluxApp.simulationKey = 'simulation';
 
 FluxApp.prototype.login = function () {
     this._fluxDataSelector.login();
@@ -45,6 +48,13 @@ FluxApp.prototype.createKey = function (name, data) {
     });
 }
 
+FluxApp.prototype.updateKey = function (id, data) {
+    this._dt.updateCell(id, {value:data, description:FluxApp.keyDescription}).then(function (cell) {
+        console.log(cell);
+    });
+};
+
+
 FluxApp.prototype.populateProjects = function (projectPromise) {
     var _this = this;
     projectPromise.then(function (projects) {
@@ -63,12 +73,10 @@ FluxApp.prototype.populateKeys = function (keysPromise) {
     keysPromise.then(function (keys) {
         for (var i=0;i<keys.entities.length;i++) {
             var entity = keys.entities[i];
-            var option = document.createElement('option');
-            _this._keysMenu.appendChild(option);
-            option.value = entity.id;
-            option.textContent = entity.label;
             if (entity.label === 'Building Profiles') {
                 _this._fluxDataSelector.selectKey(entity.id);
+            } else if (entity.label === FluxApp.simulationKey) {
+                _this.simulationKeyId = entity.id;
             }
         }
     });
@@ -86,7 +94,7 @@ FluxApp.prototype.populateValue = function (valuePromise) {
             });
         } else if (entity.value.constructor === Array) {
             // assume it's the footprints
-            Site.processFootprints(entity.value);
+            _this.site.processFootprints(entity.value);
         }
     });
 }
@@ -103,36 +111,17 @@ FluxApp.prototype.getFluxToken = function () {
     return fluxCredentials.fluxToken;
 }
 
-FluxApp.prototype.fileChanged = function (selector) {
-    // file name map
-    var files = selector.files;
-    for (var i=0;i<files.length; i++) {
-        var file = selector.files[i];
-        this._readImageFile(file);
+FluxApp.prototype.uploadImage = function () {
+    var dataUrl = this.canvas.toDataURL();
+    // this.createKey('simulation', dataUrl);
+    if (this.simulationKeyId == null) {
+        this.createKey(FluxApp.simulationKey, this.site.getMesh());
+    } else {
+        this.updateKey(this.simulationKeyId, this.site.getMesh(dataUrl));
     }
+
 };
 
-FluxApp.prototype.renderImageBlob = function (blob) {
-    var _this = this;
-    createImageBitmap(blob).then(function (imageBitmap) {
-        _this.canvas.width = imageBitmap.width;
-        _this.canvas.height = imageBitmap.height;
-        _this.ctx.drawImage(imageBitmap, 0, 0);
-    });
-};
-
-
-FluxApp.prototype._readImageFile = function (imageFile) {
-    var _this = this
-    this.renderImageBlob(imageFile);
-    var fileNameBase = FluxApp.stripExtension(imageFile.name);
-    var reader = new FileReader();
-    reader.onloadend = function (event) {
-        var imgDataUrl = event.target.result;
-        _this.createKey(fileNameBase, imgDataUrl);
-    }
-    reader.readAsDataURL(imageFile);
-};
 
 FluxApp.stripExtension = function (fileName) {
     var i = fileName.indexOf('.');

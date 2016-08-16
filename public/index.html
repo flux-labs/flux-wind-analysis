@@ -14,15 +14,11 @@
         <button type="button" id="loginButton">Login</button><br>
         <select id="projectMenu"></select>
         <button type="button" id="projectButton">Select this project</button><br>
-        <select id="keysMenu"></select>
-        <button type="button" id="keyButton">View this key</button><br>
-        Upload image: <input type="file" id="imageSelector" accept="image/*" multiple disabled><br>
-        <br>
-        <canvas id="imageCanvas" height="200" width="200"></canvas>
+        <button type="button" id="uploadButton">Upload this frame</button><br>
     </div>
     <h2>Fluid Dynamics Simulation</h2>
 
-    <canvas id="theCanvas" width="600" height="440">This application runs only in modern
+    <canvas id="theCanvas" width="512" height="512">This application runs only in modern
     browsers. For best results, use Google Chrome.</canvas>
 
     <div>
@@ -125,15 +121,12 @@
 
         document.querySelector('#projectButton').addEventListener('click', function(){
             fluxApp.selectProject();
-            document.querySelector('#imageSelector').removeAttribute('disabled');
+            // document.querySelector('#imageSelector').removeAttribute('disabled');
         });
 
-        document.querySelector('#keyButton').addEventListener('click', function(){
-            fluxApp.selectKey();
-        });
-
-        document.querySelector('#imageSelector').addEventListener('change', function(){
-            fluxApp.fileChanged(imageSelector);
+        document.querySelector('#uploadButton').addEventListener('click', function(){
+            // fluxApp.selectKey();
+            fluxApp.uploadImage();
         });
 
     }
