@@ -2,3 +2,10 @@
 	max-width: 500px;
 	max-height: 500px;
 }
+
+#viewportContainer {
+	width: 500px;
+	height: 500px;
+	background-color: #dddddd;
+	display: inline-block;
+}

@@ -18,7 +18,7 @@ Site.calcLength = function(x0, y0, x1, y1) {
 };
 
 
-Site.prototype.getMesh = function (dataUrl) {
+Site.prototype.getMesh = function (dataUrl, mesh) {
     if (!this.bounds) return;
     var scale = 1.0 / (this.uvScale);
     var offset = Site.paddingOffset;
@@ -27,25 +27,28 @@ Site.prototype.getMesh = function (dataUrl) {
     var maxX = minX+xdim*scale;
     var maxY = minY+ydim*scale;
     var props = {
-        colorMap: dataUrl
+        colorMap: dataUrl,
+        noLighting: true
     }
-    var uvmax = 1.0;// / Site.paddingScale;
+    var dx = maxX - minX;
+    var dy = maxY - minY;
+    var uvs = [];
+    for (var i=0;i<mesh.vertices.length;i++) {
+        var v = mesh.vertices[i];
+        var x = v[0];
+        var y = v[1];
+        var u = (x-minX) / dx;
+        var v = (y-minY) / dy;
+        uvs.push([u,v]);
+    }
     return {
         "attributes":{
             "materialProperties":props,
-            "uvs":[
-                [uvmax,uvmax],
-                [0,uvmax],
-                [0,0],
-                [uvmax,0]
-            ]
+            "uvs":uvs
         },
-        "vertices": [
-        [maxX,maxY,0],
-        [minX,maxY,0],
-        [minX,minY,0],
-        [maxX,minY,0]],
-        "faces":[[0,3,1],[1,3,2]],"primitive":"mesh"
+        "vertices": mesh.vertices,
+        "faces": mesh.faces,
+        "primitive":"mesh"
     };
 }
 

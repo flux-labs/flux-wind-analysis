@@ -16,9 +16,21 @@ function FluxApp (clientKey, redirectUri, projectMenu, isProd){
     this.ctx = this.canvas.getContext('2d');
     this.simulationKeyId = null;
     this.site = new Site();
+    this._vpDiv = document.querySelector('#viewportContainer');
+    this.keys = {};
 }
 FluxApp.keyDescription = 'Image blob';
-FluxApp.simulationKey = 'simulation';
+
+// These keys are automatically fetched and made available as member variables
+FluxApp.keys = {
+    simulationKey: 'simulation',
+    footprintKey: 'Building Profiles',
+    topoKey: 'Topographic Mesh',
+    buildingsRandomKey: 'Buildings (randomized height)',
+    buildingsAccurateKey: 'Buildings (accurate height)'
+};
+FluxApp.keyArray = Object.keys(FluxApp.keys);
+FluxApp.valueArray = FluxApp.keyArray.map(function (item) {return FluxApp.keys[item];});
 
 FluxApp.prototype.login = function () {
     this._fluxDataSelector.login();
@@ -35,11 +47,17 @@ FluxApp.prototype.onLogin = function () {
 FluxApp.prototype.selectProject = function () {
     this._fluxDataSelector.selectProject(this._projectMenu.value);
     this._dt = this._fluxDataSelector.getDataTable(this._projectMenu.value).table;
+    this.vp = new FluxViewport(this._vpDiv,{
+        projectId: this._projectMenu.value,
+        token: this.getFluxToken()
+    });
+    this.vp.setupDefaultLighting();
+    this.vp.setupDefaultLighting();
+    this.vp.homeCamera();
 }
 
 FluxApp.prototype.selectKey = function () {
     this._fluxDataSelector.selectKey(this._keysMenu.value);
-    // this._dt = this._fluxDataSelector.getDataTable(this._projectMenu.value).table;
 }
 
 FluxApp.prototype.createKey = function (name, data) {
@@ -73,9 +91,10 @@ FluxApp.prototype.populateKeys = function (keysPromise) {
     keysPromise.then(function (keys) {
         for (var i=0;i<keys.entities.length;i++) {
             var entity = keys.entities[i];
-            if (entity.label === 'Building Profiles') {
+            if (FluxApp.valueArray.indexOf(entity.label) !== -1) {
                 _this._fluxDataSelector.selectKey(entity.id);
-            } else if (entity.label === FluxApp.simulationKey) {
+            }
+            if (entity.label === FluxApp.keys.simulationKey) {
                 _this.simulationKeyId = entity.id;
             }
         }
@@ -85,16 +104,16 @@ FluxApp.prototype.populateKeys = function (keysPromise) {
 FluxApp.prototype.populateValue = function (valuePromise) {
     var _this = this;
     valuePromise.then(function (entity) {
-        if (typeof entity.value === 'string') {
-            var dataUrl = entity.value;
-            fetch(dataUrl).then(function(response) {
-                return response.blob();
-            }).then(function(blob) {
-                _this.renderImageBlob(blob);
-            });
-        } else if (entity.value.constructor === Array) {
-            // assume it's the footprints
+        var index = FluxApp.valueArray.indexOf(entity.label);
+        if (index !== -1) {
+            _this.keys[FluxApp.keyArray[index]] = entity.value;
+        }
+        if (entity.label === FluxApp.keys.footprintKey) {
             _this.site.processFootprints(entity.value);
+        }
+        if (index !== -1) { // TODO make sure it doesnt get called twice
+            var geomKey = _this.keys.buildingsAccurateKey && _this.keys.buildingsAccurateKey.length > 0 ? _this.keys.buildingsAccurateKey : _this.keys.buildingsRandomKey;
+            _this.vp.setGeometryEntity([_this.keys.footprintKey, _this.keys.simulationKey, geomKey]);
         }
     });
 }
@@ -115,9 +134,9 @@ FluxApp.prototype.uploadImage = function () {
     var dataUrl = this.canvas.toDataURL();
     // this.createKey('simulation', dataUrl);
     if (this.simulationKeyId == null) {
-        this.createKey(FluxApp.simulationKey, this.site.getMesh());
+        this.createKey(FluxApp.simulationKey, this.site.getMesh(dataUrl, this.keys.topoKey));
     } else {
-        this.updateKey(this.simulationKeyId, this.site.getMesh(dataUrl));
+        this.updateKey(this.simulationKeyId, this.site.getMesh(dataUrl, this.keys.topoKey));
     }
 
 };

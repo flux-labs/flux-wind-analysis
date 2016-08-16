@@ -6,6 +6,7 @@
     <script src="https://npmcdn.com/flux-sdk-browser@0.3.1/dist/flux-sdk-min.js"></script>
     <script src="./lib/flux-data-selector.js"></script>
     <script src="./src/app.js"></script>
+    <script src="./lib/flux-viewport-bundle.global.js"></script>
 </head>
     <body onload="handleLoad()">
     <h2>Flux Simulation Uploader</h2>
@@ -20,7 +21,9 @@
 
     <canvas id="theCanvas" width="512" height="512">This application runs only in modern
     browsers. For best results, use Google Chrome.</canvas>
-
+    <div id="viewportContainer">
+        <!-- Flux Viewport gets inserted here -->
+    </div>
     <div>
         <select id="sizeSelect" onchange="resize()">
             <option value="10">60 x 24</option>
@@ -127,6 +130,13 @@
         document.querySelector('#uploadButton').addEventListener('click', function(){
             // fluxApp.selectKey();
             fluxApp.uploadImage();
+        });
+
+        window.addEventListener('keypress', function (e) {
+            // Focus the viewport camera on the current geometry when the 'f' key is pressed
+            if (e.key==='f') {
+                fluxApp.vp.focus();
+            }
         });
 
     }
