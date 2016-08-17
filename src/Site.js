@@ -17,7 +17,65 @@ Site.calcLength = function(x0, y0, x1, y1) {
     return Math.sqrt(dx*dx+dy*dy);
 };
 
+/**
+ * Get the velocity vectors flow lines.
+ * @return {Array.<Object>} Array of lines as Flux JSON
+ */
+Site.prototype.getVectors = function () {
+    // TODO generalize this preamble used by getVectors and getMesh
+    if (!this.bounds) return;
+    var scale = 1.0 / (this.uvScale);
+    var offset = Site.paddingOffset;
+    var minX = scale*(this.bounds[0][0]-offset);
+    var minY = scale*(this.bounds[0][1]-offset);
+    var maxX = minX+xdim*scale;
+    var maxY = minY+ydim*scale;
+    var dx = maxX - minX;
+    var dy = maxY - minY;
 
+    var verts = [];
+    var xInc = 4;
+    var yInc = 4;
+    var sitesPerFlowline = 1;
+    var scaleFactor = (xInc/6.0) * pxPerSquare;
+    for (var yCount=0; yCount<ydim; yCount+=yInc) {
+        var y = Math.round((yCount+0.5) * sitesPerFlowline);
+        for (var xCount=0; xCount<xdim; xCount+=xInc) {
+            var x = Math.round((xCount+0.5) * sitesPerFlowline);
+            var thisUx = ux[x+y*xdim];
+            var thisUy = uy[x+y*xdim];
+            var speed = Math.sqrt(thisUx*thisUx + thisUy*thisUy);
+            if (speed > 0.0001) {
+                var tx = (xCount+0.5) / xdim;
+                var px = minX + tx * dx;
+                var ty = (yCount+0.5) / ydim;
+                var py = minY + ty * dy;
+                var scale = scaleFactor * Math.pow(speed,0.5)*10;
+                verts.push([[px-thisUx*scale, py-thisUy*scale],
+                            [px+thisUx*scale, py+thisUy*scale]])
+            }
+        }
+    }
+
+    var lines = [];
+    for (var i=0;i<verts.length; i++) {
+        var vert = verts[i];
+        var line = {
+            "start": [vert[0][0],vert[0][1],this.maxZ+1],
+            "end":   [vert[1][0],vert[1][1],this.maxZ+1],
+            "primitive":"line"
+        };
+        lines.push(line);
+    }
+    return lines;
+}
+
+/**
+ * Get a copy of the Topographic Mesh key, but with texture and uvs from simulation.
+ * @param  {String} dataUrl Blob url containing image data of texture
+ * @param  {Object} mesh    Source mesh (Flux JSON)
+ * @return {Object}         New mesh (Flux JSON)
+ */
 Site.prototype.getMesh = function (dataUrl, mesh) {
     if (!this.bounds) return;
     var scale = 1.0 / (this.uvScale);
@@ -58,6 +116,7 @@ Site.prototype.processFootprints = function (values) {
     var bounds = this.bounds;
     var scale = Site.computeScales(bounds);
     this.uvScale = scale;
+    this.maxZ = -Infinity;
     // For each footprint
     for (var f=0;f<values.length;f++) {
         var footprint = values[f];
@@ -68,6 +127,9 @@ Site.prototype.processFootprints = function (values) {
             var point = points[i];
             var nextPoint = (i === len-1) ? points[0] : points[i+1];
 
+            if (point[2] > this.maxZ) {
+                this.maxZ = point[2];
+            }
             var x0 = point[0];
             var x1 = nextPoint[0];
             var y0 = point[1];

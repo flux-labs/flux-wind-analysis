@@ -68,7 +68,9 @@ var startButton = document.getElementById('startButton');
 var speedSlider = document.getElementById('speedSlider');
 var speedValue = document.getElementById('speedValue');
 var viscSlider = document.getElementById('viscSlider');
+var dirSlider = document.getElementById('dirSlider');
 var viscValue = document.getElementById('viscValue');
+var dirValue = document.getElementById('dirValue');
 var mouseSelect = document.getElementById('mouseSelect');
 var barrierSelect = document.getElementById('barrierSelect');
 for (var barrierIndex=0; barrierIndex<barrierList.length; barrierIndex++) {
@@ -287,13 +289,16 @@ function simulate() {
 // Set the fluid variables at the boundaries, according to the current slider value:
 function setBoundaries() {
 	var u0 = Number(speedSlider.value);
+	var d0 = Number(dirSlider.value);
+	var dx = u0*Math.cos(d0);
+	var dy = u0*Math.sin(d0);
 	for (var x=0; x<xdim; x++) {
-		setEquil(x, 0, u0, 0, 1);
-		setEquil(x, ydim-1, u0, 0, 1);
+		setEquil(x, 0, dx, dy, 1);
+		setEquil(x, ydim-1, dx, dy, 1);
 	}
 	for (var y=1; y<ydim-1; y++) {
-		setEquil(0, y, u0, 0, 1);
-		setEquil(xdim-1, y, u0, 0, 1);
+		setEquil(0, y, dx, dy, 1);
+		setEquil(xdim-1, dx, dy, 0, 1);
 	}
 }
 
@@ -853,6 +858,12 @@ function adjustSpeed() {
 // Show value of viscosity:
 function adjustViscosity() {
 	viscValue.innerHTML = Number(viscSlider.value).toFixed(3);
+}
+
+
+// Show value of direction:
+function adjustDirection() {
+	dirValue.innerHTML = Number(dirSlider.value).toFixed(2);
 }
 
 // Show or hide the data area:

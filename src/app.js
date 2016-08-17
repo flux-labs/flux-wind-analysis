@@ -132,11 +132,11 @@ FluxApp.prototype.getFluxToken = function () {
 
 FluxApp.prototype.uploadImage = function () {
     var dataUrl = this.canvas.toDataURL();
-    // this.createKey('simulation', dataUrl);
+    var geomData = [this.site.getMesh(dataUrl, this.keys.topoKey), this.site.getVectors()];
     if (this.simulationKeyId == null) {
-        this.createKey(FluxApp.simulationKey, this.site.getMesh(dataUrl, this.keys.topoKey));
+        this.createKey(FluxApp.simulationKey, geomData);
     } else {
-        this.updateKey(this.simulationKeyId, this.site.getMesh(dataUrl, this.keys.topoKey));
+        this.updateKey(this.simulationKeyId, geomData);
     }
 
 };
