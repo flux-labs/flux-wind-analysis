@@ -18,18 +18,25 @@ Site.calcLength = function(x0, y0, x1, y1) {
 };
 
 /**
+ * Determine if the x, y pair is in the bounding box of the footprints in world space
+ * @param  {Number} x World space query x
+ * @param  {Number} y World space query y
+ * @return {Boolean}   True if it's inside
+ */
+Site.prototype.inBounds = function (x, y) {
+    return x > this.bounds[0][0] && x < this.bounds[1][0] && y > this.bounds[0][1] && y < this.bounds[1][1];
+}
+
+/**
  * Get the velocity vectors flow lines.
  * @return {Array.<Object>} Array of lines as Flux JSON
  */
 Site.prototype.getVectors = function () {
-    // TODO generalize this preamble used by getVectors and getMesh
-    if (!this.bounds) return;
-    var scale = 1.0 / (this.uvScale);
-    var offset = Site.paddingOffset;
-    var minX = scale*(this.bounds[0][0]-offset);
-    var minY = scale*(this.bounds[0][1]-offset);
-    var maxX = minX+xdim*scale;
-    var maxY = minY+ydim*scale;
+    var paddedBounds = this.getPaddedBounds();
+    var minX = paddedBounds[0][0];
+    var minY = paddedBounds[0][1];
+    var maxX = paddedBounds[1][0];
+    var maxY = paddedBounds[1][1];
     var dx = maxX - minX;
     var dy = maxY - minY;
 
@@ -37,7 +44,7 @@ Site.prototype.getVectors = function () {
     var xInc = 4;
     var yInc = 4;
     var sitesPerFlowline = 1;
-    var scaleFactor = (xInc/6.0) * pxPerSquare;
+    var scaleFactor = 50 * (xInc/6.0) * pxPerSquare;
     for (var yCount=0; yCount<ydim; yCount+=yInc) {
         var y = Math.round((yCount+0.5) * sitesPerFlowline);
         for (var xCount=0; xCount<xdim; xCount+=xInc) {
@@ -45,14 +52,13 @@ Site.prototype.getVectors = function () {
             var thisUx = ux[x+y*xdim];
             var thisUy = uy[x+y*xdim];
             var speed = Math.sqrt(thisUx*thisUx + thisUy*thisUy);
-            if (speed > 0.0001) {
-                var tx = (xCount+0.5) / xdim;
-                var px = minX + tx * dx;
-                var ty = (yCount+0.5) / ydim;
-                var py = minY + ty * dy;
-                var scale = scaleFactor * Math.pow(speed,0.5)*10;
-                verts.push([[px-thisUx*scale, py-thisUy*scale],
-                            [px+thisUx*scale, py+thisUy*scale]])
+            var wx = this.simToWorldSpaceX(x);
+            var wy = this.simToWorldSpaceY(y);
+            // Export nonzero values that are in the region of the buildings
+            if (speed > 0.0001 && this.inBounds(wx,wy)) {
+                var scale = scaleFactor * Math.pow(speed,0.5);
+                verts.push([[wx-thisUx*scale, wy-thisUy*scale],
+                            [wx+thisUx*scale, wy+thisUy*scale]])
             }
         }
     }
@@ -68,8 +74,20 @@ Site.prototype.getVectors = function () {
         lines.push(line);
     }
     return lines;
+    return null;
 }
 
+Site.prototype.getPaddedBounds = function() {
+    if (this.bounds == null || this.uvScale == null) {
+        console.warn('Cant call get mesh before bounds and scale are set');
+        return;
+    }
+    var minX = this.simToWorldSpaceX(0);
+    var minY = this.simToWorldSpaceY(0);
+    var maxX = this.simToWorldSpaceX(xdim);
+    var maxY = this.simToWorldSpaceY(ydim);
+    return [[minX, minY],[maxX, maxY]];
+}
 /**
  * Get a copy of the Topographic Mesh key, but with texture and uvs from simulation.
  * @param  {String} dataUrl Blob url containing image data of texture
@@ -77,26 +95,26 @@ Site.prototype.getVectors = function () {
  * @return {Object}         New mesh (Flux JSON)
  */
 Site.prototype.getMesh = function (dataUrl, mesh) {
-    if (!this.bounds) return;
-    var scale = 1.0 / (this.uvScale);
-    var offset = Site.paddingOffset;
-    var minX = scale*(this.bounds[0][0]-offset);
-    var minY = scale*(this.bounds[0][1]-offset);
-    var maxX = minX+xdim*scale;
-    var maxY = minY+ydim*scale;
+    var paddedBounds = this.getPaddedBounds();
+    var minX = paddedBounds[0][0];
+    var minY = paddedBounds[0][1];
+    var maxX = paddedBounds[1][0];
+    var maxY = paddedBounds[1][1];
+    var dx = maxX - minX;
+    var dy = maxY - minY;
+
     var props = {
         colorMap: dataUrl,
         noLighting: true
     }
-    var dx = maxX - minX;
-    var dy = maxY - minY;
     var uvs = [];
+
     for (var i=0;i<mesh.vertices.length;i++) {
-        var v = mesh.vertices[i];
-        var x = v[0];
-        var y = v[1];
-        var u = (x-minX) / dx;
-        var v = (y-minY) / dy;
+        var vert = mesh.vertices[i];
+        var wx = vert[0];
+        var wy = vert[1];
+        var u = (wx-minX) / dx;
+        var v = (wy-minY) / dy;
         uvs.push([u,v]);
     }
     return {
@@ -108,6 +126,22 @@ Site.prototype.getMesh = function (dataUrl, mesh) {
         "faces": mesh.faces,
         "primitive":"mesh"
     };
+}
+
+Site.prototype.simToWorldSpaceX = function(sx) {
+    return ((sx-Site.paddingOffset) / this.uvScale) + this.bounds[0][0];
+}
+
+Site.prototype.simToWorldSpaceY = function(sy) {
+    return ((sy-Site.paddingOffset) / this.uvScale) + this.bounds[0][1];
+}
+
+Site.prototype.worldToSimSpaceX = function(wx) {
+    return Site.paddingOffset+Math.floor(this.uvScale*(wx-this.bounds[0][0]));
+}
+
+Site.prototype.worldToSimSpaceY = function (wy) {
+    return Site.paddingOffset+Math.floor(this.uvScale*(wy-this.bounds[0][1]));
 }
 
 // Building Profiles
@@ -123,6 +157,7 @@ Site.prototype.processFootprints = function (values) {
         if (footprint.primitive !== 'polyline') continue;
         var points = footprint.points;
         var len = points.length;
+        // for each point on the line
         for (var i=0;i<len;i++) {
             var point = points[i];
             var nextPoint = (i === len-1) ? points[0] : points[i+1];
@@ -141,8 +176,10 @@ Site.prototype.processFootprints = function (values) {
                 var xt = Site.lerp(x0, x1, t);
                 var yt = Site.lerp(y0, y1, t);
 
-                var x = Site.paddingOffset+Math.floor(scale*(xt)-bounds[0][0]);
-                var y = Site.paddingOffset+Math.floor(scale*(yt)-bounds[0][1]);
+                // var x = Site.paddingOffset+Math.floor(scale*(xt-bounds[0][0]));
+                // var y = Site.paddingOffset+Math.floor(scale*(yt-bounds[0][1]));
+                var x = this.worldToSimSpaceX(xt);
+                var y = this.worldToSimSpaceY(yt);
                 barrier[x+y*xdim] = true;
             }
         }
@@ -157,11 +194,17 @@ Site.computeScales = function (bounds) {
     var maxP = bounds[1];
     var dx = maxP[0]-minP[0]+Site.paddingOffset;
     var dy = maxP[1]-minP[1]+Site.paddingOffset;
-    var scale = 1.0 / Math.max( Site.paddingScale * dx / xdim,
-                                Site.paddingScale * dy / ydim);
+    var scaleX = xdim / (Site.paddingScale * dx);
+    var scaleY = ydim / (Site.paddingScale * dy);
+    var scale = Math.min( scaleX, scaleY);
     return scale;
 };
 
+/**
+ * Find the bounds of the polyline in world space (ws)
+ * @param  {Array.<Object>} values Array of polyline flux JSON
+ * @return {Array.Array.<Number>}        [[minx, miny],[maxx,maxy]]
+ */
 Site.findBounds = function (values) {
     var minP = [Infinity, Infinity];
     var maxP = [-Infinity, -Infinity];

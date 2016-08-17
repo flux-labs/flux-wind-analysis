@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Flux Simulation Uploader</title>
-    <script src="https://npmcdn.com/flux-sdk-browser@0.3.1/dist/flux-sdk-min.js"></script>
+    <script src="https://npmcdn.com/flux-sdk-browser@0.4.3/dist/flux-sdk-min.js"></script>
     <script src="./lib/flux-data-selector.js"></script>
     <script src="./src/app.js"></script>
     <script src="./lib/flux-viewport-bundle.global.js"></script>
@@ -15,7 +15,8 @@
         <button type="button" id="loginButton">Login</button><br>
         <select id="projectMenu"></select>
         <button type="button" id="projectButton">Select this project</button><br>
-        <button type="button" id="uploadButton">Upload this frame</button><br>
+        <button type="button" id="uploadButton">Upload this frame</button>
+        <button type="button" id="viewportButton">Update viewport</button><br>
     </div>
     <h2>Fluid Dynamics Simulation</h2>
 
@@ -100,7 +101,7 @@
 
     <script>
     'use strict';
-
+    var fluxApp;
     function makeApp(isProd) {
         var FLUX_CLIENT_ID = '780e094b-ce3b-4f7a-b807-00c61d30633f';//local
         if (isProd) {
@@ -112,12 +113,11 @@
         while(projectMenu.children.length > 0) {
             projectMenu.removeChild(projectMenu.children[0]);
         }
-        var fluxApp = new FluxApp(FLUX_CLIENT_ID, REDIRECT_URI, projectMenu, isProd);
-        return fluxApp;
+        return new FluxApp(FLUX_CLIENT_ID, REDIRECT_URI, projectMenu, isProd);
     }
 
     function handleLoad() {
-        var fluxApp = makeApp(true); // true means connect to prod not dev
+        fluxApp = makeApp(true); // true means connect to prod not dev
         document.querySelector('#contentDiv').removeAttribute('hidden');
 
         document.querySelector('#loginButton').addEventListener('click', function(){
@@ -130,8 +130,11 @@
         });
 
         document.querySelector('#uploadButton').addEventListener('click', function(){
-            // fluxApp.selectKey();
             fluxApp.uploadImage();
+        });
+
+        document.querySelector('#viewportButton').addEventListener('click', function(){
+            fluxApp.updateViewport();
         });
 
         window.addEventListener('keypress', function (e) {
