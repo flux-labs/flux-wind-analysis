@@ -104,17 +104,14 @@
     'use strict';
     var fluxApp;
     function makeApp(isProd) {
-        var FLUX_CLIENT_ID = '780e094b-ce3b-4f7a-b807-00c61d30633f';//local
-        if (isProd) {
-            FLUX_CLIENT_ID = '92a4c7db-d562-4421-954b-effb2cfe1fd7'; // Prod
-        }
+        var FLUX_CLIENT_ID = 'd7b3b1af-be55-4ad9-8925-d37e7d6804f2'; // Prod flux-wind-analysis
         var projectMenu = document.querySelector('#projectMenu');
 
         var REDIRECT_URI = window.location.origin;
         while(projectMenu.children.length > 0) {
             projectMenu.removeChild(projectMenu.children[0]);
         }
-        return new FluxApp(FLUX_CLIENT_ID, REDIRECT_URI, projectMenu, isProd);
+        return new FluxApp(FLUX_CLIENT_ID, REDIRECT_URI, projectMenu, true);
     }
 
     function handleLoad() {
