@@ -14,6 +14,7 @@ function FluxApp (clientKey, redirectUri, projectMenu, isProd){
     this._fluxDataSelector.init();
     this.canvas = document.querySelector('#theCanvas');
     this.ctx = this.canvas.getContext('2d');
+    this.simulationImageKeyId = null;
     this.simulationMeshKeyId = null;
     this.simulationVectorsKeyId = null;
     this.site = new Site();
@@ -26,6 +27,7 @@ FluxApp.defaultDescription = 'Created by Flux Wind Analysis';
 
 // These keys are automatically fetched and made available as member variables
 FluxApp.keys = {
+    simulationImageKey: 'Simulation Image',
     simulationMeshKey: 'Simulation Mesh',
     simulationVectorsKey: 'Simulation Vectors',
     footprintKey: 'Building Profiles',
@@ -87,6 +89,9 @@ FluxApp.prototype.createKey = function (name, data, description) {
         if (name === FluxApp.keys.simulationVectorsKey) {
             _this.simulationVectorsKeyId = cell.id;
         }
+        if (name === FluxApp.keys.simulationImageKey) {
+            _this.simulationImageKeyId = cell.id;
+        }
         // Select the key so we can see it's new value
         return _this._fluxDataSelector.selectKey(cell.id);
     });
@@ -126,6 +131,9 @@ FluxApp.prototype.populateKeys = function (keysPromise) {
             }
             if (entity.label === FluxApp.keys.simulationVectorsKey) {
                 _this.simulationVectorsKeyId = entity.id;
+            }
+            if (entity.label === FluxApp.keys.simulationImageKey) {
+                _this.simulationImageKeyId = entity.id;
             }
         }
     });
@@ -170,6 +178,8 @@ FluxApp.prototype.getFluxToken = function () {
 FluxApp.prototype.uploadImage = function () {
     this.keyCount = 0;
     var dataUrl = this.canvas.toDataURL();
+
+    this.setKey(this.simulationImageKeyId, FluxApp.keys.simulationImageKey, dataUrl);
 
     var geomData = this.site.getMesh(dataUrl, this.keys.topoKey);
     var promiseGeom = this.setKey(this.simulationMeshKeyId, FluxApp.keys.simulationMeshKey, geomData);
