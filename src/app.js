@@ -30,7 +30,7 @@ FluxApp.keys = {
     simulationImageKey: 'Simulation Image',
     simulationMeshKey: 'Simulation Mesh',
     simulationVectorsKey: 'Simulation Vectors',
-    footprintKey: 'Building Profiles',
+    footprintKey: 'Building Footprints',
     topoKey: 'Topographic Mesh',
     buildingsRandomKey: 'Buildings (randomized height)',
     buildingsAccurateKey: 'Buildings (accurate height)'
